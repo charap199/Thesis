@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "477690832789",
+    "project_id": "poi-auth",
+    "storage_bucket": "poi-auth.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:477690832789:android:142965c7965014a500389c",
+        "android_client_info": {
+          "package_name": "com.charikleia.petrou.personalisedtravelguide"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "477690832789-ue2osn828liuasm3nrheb66vdb7vr9ru.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDY1d8kAfJz0V4ZRdpLNqNWoK2Bm4dZlQw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "477690832789-ue2osn828liuasm3nrheb66vdb7vr9ru.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
