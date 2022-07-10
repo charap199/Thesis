@@ -7,16 +7,32 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
+
+import android.database.sqlite.SQLiteDatabase;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
 
 public class MainMenu extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     private FirebaseAuth mAuth;
     private DrawerLayout drawer;
+    private TextView textView6;
+    //bd variables
+    Connection connect;
+    List<String> ConnectionResult=new ArrayList<String>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,7 +40,11 @@ public class MainMenu extends AppCompatActivity implements NavigationView.OnNavi
         setContentView(R.layout.activity_main_menu);
         System.out.println(getIntent().getStringExtra("uid"));
         mAuth = FirebaseAuth.getInstance();
-        System.out.println(mAuth.getCurrentUser().getDisplayName());
+        //System.out.println("curr user is:" + Objects.requireNonNull(mAuth.getCurrentUser()).getDisplayName());
+        textView6= findViewById(R.id.textView6);
+        textView6.setText(getIntent().getStringExtra("uid"));
+        //get instance of realtime db Firebase
+//        DatabeaseReference grPois = FirebaseAuth.getInstance().getReference;
 
         Toolbar toolbar = findViewById(R.id.toolbar);
 //        setSupportActionBar(toolbar);
@@ -42,6 +62,31 @@ public class MainMenu extends AppCompatActivity implements NavigationView.OnNavi
             getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container,new ProfileFragment()).commit();
             //select our fist item
             navigationView.setCheckedItem(R.id.nav_profile);
+        }
+
+//        server connection
+        try {
+            System.out.println("c11");
+            ConnectionHelper connectionHelper = new ConnectionHelper();
+            connect = connectionHelper.connectionclass();
+            if (connect != null){
+                System.out.println("c12");
+                String query = "Select * from pois.greecepois";
+                Statement st = connect.createStatement();
+                ResultSet rs = st.executeQuery(query);
+
+                while (rs.next()){
+                    ConnectionResult.add(rs.toString());
+                    System.out.println(rs.getString(1));
+                }
+            }else{
+                System.out.println("c13");
+                ConnectionResult.add("Check Connection!");
+            }
+
+        }catch (Exception e){
+            System.out.println("c13");
+            System.out.println("Exeption:" + e);
         }
 
 
@@ -72,6 +117,19 @@ public class MainMenu extends AppCompatActivity implements NavigationView.OnNavi
             case R.id.nav_map:
                 getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container,new MyTripsFragment()).commit();
                 break;
+            case R.id.nav_logout:
+                System.out.println("logout");
+                if (mAuth != null){
+                    //do if user logged in
+                    FirebaseAuth.getInstance().signOut();
+                    Intent intent = new Intent(MainMenu.this, MainActivity.class);
+                    intent.putExtra("","");
+                    startActivity(intent);
+                }else {
+                    //do if no user logged in
+                    Toast.makeText(this, "No user logged in!", Toast.LENGTH_SHORT).show();
+                }
+                //getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container,new NewTripFragment()).commit();
 //            case R.id.nav_map:
 //                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container,new MyTripsFragment()).commit();
 //                break;

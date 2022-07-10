@@ -31,6 +31,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //    private DatabaseReference mDatabase;
     ProgressBar progressBar2;
 
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
+//
+//    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +56,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         Toast.makeText(this, "Welcome!", Toast.LENGTH_SHORT).show();
 
+        System.out.println(mAuth);
 
         //log in
         login.setOnClickListener(new View.OnClickListener() {
@@ -113,6 +119,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onComplete(@NonNull Task<AuthResult> task) {
                 System.out.println("2");
+//                progressBar2.setVisibility(View.VISIBLE);
                 if (task.isSuccessful()){
                     System.out.println("3");
                     //retrieve data from firebase
@@ -125,6 +132,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     Intent intent = new Intent(MainActivity.this, MainMenu.class);
                     intent.putExtra("uid",currentUser.getUid());
                     startActivity(intent);
+                    System.out.println("Firebase connection Successful");
                 }else{
                     System.out.println("4");
                     progressBar2.setVisibility(View.GONE);
@@ -142,6 +150,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onStart() {
         super.onStart();
+        // Check if user is signed in (non-null) and update UI accordingly.
+        FirebaseUser currentUser = mAuth.getCurrentUser();
+//        updateUI(currentUser);
         progressBar2.setVisibility(View.GONE);
     }
 

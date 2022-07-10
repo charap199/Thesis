@@ -48,9 +48,8 @@
             android:elevation="4dp"/>
 
 
-
         <Space
-            android:layout_width="137dp"
+            android:layout_width="242dp"
             android:layout_height="47dp"
             android:layout_weight="1"
             android:fitsSystemWindows="true" />
@@ -63,6 +62,11 @@
             android:adjustViewBounds="true"
             app:srcCompat="@drawable/avatar_icon" />
       </LinearLayout>
+
+      <TextView
+          android:id="@+id/textView6"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content" />
 
 
     </LinearLayout>
