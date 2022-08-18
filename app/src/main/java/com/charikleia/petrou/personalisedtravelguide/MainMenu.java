@@ -10,6 +10,8 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -30,9 +32,11 @@ public class MainMenu extends AppCompatActivity implements NavigationView.OnNavi
     private FirebaseAuth mAuth;
     private DrawerLayout drawer;
     private TextView textView6;
+    public String records="";
     //bd variables
     Connection connect;
     List<String> ConnectionResult=new ArrayList<String>();
+//    DatabaseHelper sqldb;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +49,7 @@ public class MainMenu extends AppCompatActivity implements NavigationView.OnNavi
         textView6.setText(getIntent().getStringExtra("uid"));
         //get instance of realtime db Firebase
 //        DatabeaseReference grPois = FirebaseAuth.getInstance().getReference;
+//        sqldb = new DatabaseHelper(MainMenu.this);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
 //        setSupportActionBar(toolbar);
@@ -57,12 +62,22 @@ public class MainMenu extends AppCompatActivity implements NavigationView.OnNavi
         drawer.addDrawerListener(toggle);
         toggle.syncState();
 
+        //call insert on mainmenu
+//        sqldb.insertData(26859928,"Arion","ACCOMMODATION","CAMPING",22.5894381,40.0158316,4326,"POINT (22.589438100000002 40.015831600000006)","","","","+30 2352 041500","","","","","","httpwww.camping-arion.gr","","","","","","","","");
+
         if (savedInstanceState==null){
             //to show our first fragment when activity is loaded
             getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container,new ProfileFragment()).commit();
             //select our fist item
             navigationView.setCheckedItem(R.id.nav_profile);
         }
+//        boolean isInserted = db.insertData(26859906,"Aegeas","ACCOMMODATION","CAMPING",22.8689528,39.7068569,4326,"POINT (22.868952800000002 39.706856900000005)","","","","","","","","","","","","","","","","","","");
+//        db.insertData(26859928,"Arion","ACCOMMODATION","CAMPING",22.5894381,40.0158316,4326,"POINT (22.589438100000002 40.015831600000006)","","","","+30 2352 041500","","","","","","httpwww.camping-arion.gr","","","","","","","","");
+//        if (isInserted==true){
+//            Toast.makeText(MainMenu.this, "Data inserted", Toast.LENGTH_SHORT).show();
+//        } else{
+//            Toast.makeText(MainMenu.this, "Data not inserted", Toast.LENGTH_SHORT).show();
+//        }
 
 //        server connection
         try {
@@ -70,10 +85,15 @@ public class MainMenu extends AppCompatActivity implements NavigationView.OnNavi
             ConnectionHelper connectionHelper = new ConnectionHelper();
             connect = connectionHelper.connectionclass();
             if (connect != null){
-                System.out.println("c12");
-                String query = "Select * from pois.greecepois";
+                String query = "Select * from greecepois";
                 Statement st = connect.createStatement();
                 ResultSet rs = st.executeQuery(query);
+                while(rs.next()) {
+                    records += rs.getString(1) + " " + rs.getString(2) + "\n";
+                }
+                textView6.setText(records);
+                System.out.println("c12");
+                System.out.println(records);
 
                 while (rs.next()){
                     ConnectionResult.add(rs.toString());
@@ -85,7 +105,7 @@ public class MainMenu extends AppCompatActivity implements NavigationView.OnNavi
             }
 
         }catch (Exception e){
-            System.out.println("c13");
+            System.out.println("c14");
             System.out.println("Exeption:" + e);
         }
 
@@ -107,14 +127,31 @@ public class MainMenu extends AppCompatActivity implements NavigationView.OnNavi
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         //created because we implemented NavigationView
         //chooses the correct activity for each navigation item
+        ScrollView scrollView3 = findViewById(R.id.scrollView3);
         switch (item.getItemId()){
             case R.id.nav_profile:
+//                setContentView(R.layout.);
+                if (scrollView3.getVisibility() != View.GONE){
+                    System.out.println(scrollView3.getVisibility());
+                    scrollView3.setVisibility(scrollView3.GONE);
+                    System.out.println(scrollView3.getVisibility());
+                }
                 getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container,new ProfileFragment()).commit();
                 break;
             case R.id.nav_add:
+                if (scrollView3.getVisibility() != View.GONE){
+                    System.out.println(scrollView3.getVisibility());
+                    scrollView3.setVisibility(scrollView3.GONE);
+                    System.out.println(scrollView3.getVisibility());
+                }
                 getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container,new NewTripFragment()).commit();
                 break;
             case R.id.nav_map:
+                if (scrollView3.getVisibility() != View.GONE){
+                    System.out.println(scrollView3.getVisibility());
+                    scrollView3.setVisibility(scrollView3.GONE);
+                    System.out.println(scrollView3.getVisibility());
+                }
                 getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container,new MyTripsFragment()).commit();
                 break;
             case R.id.nav_logout:
@@ -133,10 +170,45 @@ public class MainMenu extends AppCompatActivity implements NavigationView.OnNavi
 //            case R.id.nav_map:
 //                getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container,new MyTripsFragment()).commit();
 //                break;
+            case R.layout.activity_main_menu:
+
 
         }
         drawer.closeDrawer(GravityCompat.START);
-        //if false no item woyld be selected
+        //if false no item would be selected
         return true;
     }
+
+//    @Override
+//    protected void onPause() {
+//        super.onPause();
+//        ScrollView scrollView3 = findViewById(R.id.scrollView3);
+//        scrollView3.setVisibility(scrollView3.GONE);
+//    }
+
+
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
+//
+//        ScrollView scrollView3 = findViewById(R.id.scrollView3);
+//        System.out.println(scrollView3.getVisibility());
+//        if (scrollView3.getVisibility() != View.GONE){
+//            System.out.println(scrollView3.getVisibility());
+//            scrollView3.setVisibility(scrollView3.GONE);
+//            System.out.println(scrollView3.getVisibility());
+//        }
+//
+//    }
+
+//    @Override
+//    protected void onPostResume() {
+//        super.onPostResume();
+//        ScrollView scrollView3 = findViewById(R.id.scrollView3);
+//        if (scrollView3.getVisibility() != View.VISIBLE){
+//            scrollView3.setVisibility(scrollView3.VISIBLE);
+//        }
+//
+//
+//    }
 }
