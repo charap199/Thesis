@@ -10,6 +10,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
 import android.os.Bundle;
 import android.provider.CallLog;
+import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,6 +20,7 @@ import android.widget.CheckBox;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -59,7 +61,7 @@ public class NewTripFragment extends Fragment {
     List<String> subcat =new ArrayList<String>();
     List<String> locs =new ArrayList<String>();
     List<Date> dates=new ArrayList<Date>();
-//    List<String> =new ArrayList<String>();
+    List<String> questions =new ArrayList<String>();
 //    List<String> =new ArrayList<String>();
 //    List<String> =new ArrayList<String>();
 //    List<String> =new ArrayList<String>();
@@ -248,9 +250,9 @@ public class NewTripFragment extends Fragment {
                     });
                     alertbld.show();
                 }else{
-
+                    ll.removeAllViews();
+                    showFinalChoices(view);
                 }
-
             }
         });
 
@@ -496,11 +498,36 @@ public class NewTripFragment extends Fragment {
     }
 
     public View showFinalChoices(View view){
+        //shows selected dates
+        SimpleDateFormat format = new SimpleDateFormat("yyyy/MM/dd");
+        TextView tvDates = new TextView(getActivity());
+        tvDates.setText("Dates between: "+ DateFormat.format("yyyy/MM/dd", dates.get(0)) +" and "+DateFormat.format("yyyy/MM/dd", dates.get(1)) + "\n");
+        ll.addView(tvDates);
 
+        //shows selected locations
+//        TextView location = new TextView(getActivity());
+//        tvDates.setText("Location: "+ );
+//        ll.addView(tvDates);
 
 
         return view;
     }
+
+//    public View initialQuestions(View view){
+//        questions.clear();
+//
+//        RadioButton rdbtn = new RadioButton(getActivity());
+//        rdbtn.setId(View.generateViewId());
+//        rdbtn.setText("Radio " + rdbtn.getId());
+////        rdbtn.setOnClickListener(getActivity());
+//        ll.addView(rdbtn);
+//
+//
+//
+//        return view;
+//    }
+
+
 
 }
 
