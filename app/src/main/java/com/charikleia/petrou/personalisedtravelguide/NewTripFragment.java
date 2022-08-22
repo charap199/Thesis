@@ -22,6 +22,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.TextView;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
 
@@ -35,12 +36,14 @@ import com.google.firebase.auth.FirebaseAuth;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.sql.Time;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class NewTripFragment extends Fragment {
     @Nullable
@@ -56,13 +59,16 @@ public class NewTripFragment extends Fragment {
     DatePickerDialog.OnDateSetListener setListener;
     public Date d1 = new Date();
     public Date d2 = new Date();
+    public int hour, minutes =0;
+    Date tempTime;
+
 
     List<String> cat =new ArrayList<String>();
     List<String> subcat =new ArrayList<String>();
     List<String> locs =new ArrayList<String>();
     List<Date> dates=new ArrayList<Date>();
-    List<String> questions =new ArrayList<String>();
-//    List<String> =new ArrayList<String>();
+    List<Integer> times =new ArrayList<Integer>();
+//    List<String> questions =new ArrayList<String>();
 //    List<String> =new ArrayList<String>();
 //    List<String> =new ArrayList<String>();
 //    List<String> =new ArrayList<String>();
@@ -263,15 +269,17 @@ public class NewTripFragment extends Fragment {
 
     public View chooseDay(View view){
         dates.clear();//clears the choices if called again for change
+        times.clear();//clears the choices if called again for change
         // Initialize RelativeLayout
         System.out.println(R.id.LinearLayout);
 //        ll = (LinearLayout) view.findViewById(R.id.LinearLayout);
 
+// code for dates
         TextView startDate = new TextView(getActivity()); // create a new textview
         startDate.setText("Choose start day: \n");
         ll.addView(startDate);
         EditText sDate = new EditText(getActivity()); // create a new edittext
-        sDate.setClickable(false);
+//        sDate.setClickable(false);
         sDate.setFocusable(false);
         sDate.setEnabled(false);
         ll.addView(sDate);
@@ -279,14 +287,13 @@ public class NewTripFragment extends Fragment {
         endDate.setText("Choose end day: \n");
         ll.addView(endDate);
         EditText eDate = new EditText(getActivity()); // create a new edittext
-        eDate.setClickable(false);
+//        eDate.setClickable(false);
         eDate.setFocusable(false);
         eDate.setEnabled(false);
         ll.addView(eDate);
 //        DatePickerDialog.OnDateSetListener setListener;
         Calendar calendar = Calendar.getInstance();
 //        Calendar calendar1 = Calendar.getInstance();
-
 
 
         //listener for start day
@@ -357,6 +364,92 @@ public class NewTripFragment extends Fragment {
             }
         });
 
+// code for times
+        TextView startTime = new TextView(getActivity()); // create a new textview
+        startTime.setText("What time to begin: \n");
+        ll.addView(startTime);
+        EditText sTime = new EditText(getActivity()); // create a new edittext
+//        sTime.setClickable(false);
+        sTime.setFocusable(false);
+        sTime.setEnabled(false);
+        ll.addView(sTime);
+
+        TextView endTime = new TextView(getActivity()); // create a new textview
+        endTime.setText("What time to end the trip: \n");
+        ll.addView(endTime);
+        EditText eTime = new EditText(getActivity()); // create a new edittext
+//        eDate.setClickable(false);
+        eTime.setFocusable(false);
+        eTime.setEnabled(false);
+        ll.addView(eTime);
+
+        TimePickerDialog.OnTimeSetListener onTimeSetListener = new TimePickerDialog.OnTimeSetListener(){
+
+            @Override
+            public void onTimeSet(TimePicker timePicker, int selectedHour, int selectedMinute) {
+                hour = selectedHour;
+                minutes = selectedMinute;
+                calendar.set(Calendar.HOUR_OF_DAY, selectedHour );
+                calendar.set(Calendar.MINUTE, selectedMinute);
+
+                String format = "HH:mm";
+                SimpleDateFormat dateFormat = new SimpleDateFormat(format);
+//                eDate.setText(dateFormat.format(calendar.getTime()));
+//                SimpleDateFormat dateFormat = new SimpleDateFormat("hh:mm");
+//                String format = "hh:mm";
+//                SimpleDateFormat dateFormat = new SimpleDateFormat(format);
+//                eDate.setText(dateFormat.format(calendar.getTime()));
+
+
+                //checks which edittext is not filled in order to set Text respectively
+                if (sTime.getText().toString().matches("")){
+//                    sTime.setText(String.format(Locale.getDefault(), "%2d:%2d", hour, minutes));
+                    sTime.setText(dateFormat.format(calendar.getTime()));
+                    tempTime = calendar.getTime();
+                }else {
+//                    eTime.setText(String.format(Locale.getDefault(), "%2d:%2d", hour, minutes));
+                    if (tempTime.compareTo(calendar.getTime())<0){
+                        eTime.setText(dateFormat.format(calendar.getTime()));
+                    }else{
+                        AlertDialog.Builder alertbld = new AlertDialog.Builder(getActivity());
+                        alertbld.setTitle("Wrong times!");
+                        alertbld.setMessage("Check the range of the selected times.");
+                        alertbld.setPositiveButton("OK", new DialogInterface.OnClickListener(){
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+
+                            }
+                        });
+                        alertbld.show();
+                    }
+                }
+            }
+        };
+
+        startTime.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                sTime.getText().clear();
+//                new TimePickerDialog(getActivity(), onTimeSetListener, hour, minutes, true);
+                TimePickerDialog timePickerDialog =new TimePickerDialog(getActivity(), onTimeSetListener, hour, minutes, true);
+                timePickerDialog.setTitle("Select Start Time");
+                timePickerDialog.show();
+                System.out.println("aaaaaaaaaaaaaaaaaaaaaaa");
+
+            }
+        });
+
+        endTime.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                eTime.getText().clear();
+//                new TimePickerDialog(getActivity(), onTimeSetListener, hour, minutes, true);
+                TimePickerDialog timePickerDialog =new TimePickerDialog(getActivity(), onTimeSetListener, hour, minutes, true);
+                timePickerDialog.setTitle("Select End Time");
+                timePickerDialog.show();
+
+            }
+        });
 
 
         Button myButton = new Button(getActivity());
@@ -369,24 +462,33 @@ public class NewTripFragment extends Fragment {
                 System.out.println(d1);
 //                ll.setVisibility(ll.GONE);
 
-                //check: if dates are wrong does not load the next layout components and shows message
-                if (d1.compareTo(d2) > 0){
-                    AlertDialog.Builder alertbld = new AlertDialog.Builder(getActivity());
-                    alertbld.setTitle("Wrong dates!");
-                    alertbld.setMessage("Check the range of the selected dates.");
-                    alertbld.setPositiveButton("OK", new DialogInterface.OnClickListener(){
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
+                //code below is to get current date & time to compare to user input later
+                SimpleDateFormat formatter = new SimpleDateFormat("yyyy/MM/dd");
+                Date currentdate = new Date();
+                System.out.println(formatter.format(currentdate));
+                //check: if dates and times are wrong does not load the next layout components and shows message
+                if (d1.compareTo(d2) > 0){//checks the two user inputs
+//                    System.out.println("if1");
+                    if (currentdate.compareTo(d1) > 0){//checks current with user input
+//                        System.out.println("if11");
+                        AlertDialog.Builder alertbld = new AlertDialog.Builder(getActivity());
+                        alertbld.setTitle("Wrong dates!");
+                        alertbld.setMessage("Check the range of the selected dates.");
+                        alertbld.setPositiveButton("OK", new DialogInterface.OnClickListener(){
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
 
-                        }
-                    });
-                    alertbld.show();
+                            }
+                        });
+                        alertbld.show();
+                    }
 
                 }
-                else if(d1 == null & d2 == null ){
+                else if(d1 == null & d2 == null & hour == 0 & minutes == 0){
+                    System.out.println("if2");
                     AlertDialog.Builder alertbld = new AlertDialog.Builder(getActivity());
                     alertbld.setTitle("Select Dates");
-                    alertbld.setMessage("You need to select dates to to the next step.");
+                    alertbld.setMessage("You need to select dates for the next step.");
                     alertbld.setPositiveButton("OK", new DialogInterface.OnClickListener(){
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
@@ -394,11 +496,28 @@ public class NewTripFragment extends Fragment {
                         }
                     });
                     alertbld.show();
-                }else if (d1.compareTo(d2) <= 0) {
-                    dates.add(d1);
-                    dates.add(d2);
-                    ll.removeAllViews();
-                    chooseLocation(view);
+                }else if (d1.compareTo(d2) <= 0) {//checks the two user input dates
+                    System.out.println("if3");
+                    if (currentdate.compareTo(d1) <= 0){//checks current date with user input
+                        System.out.println("if33");
+                        dates.add(d1);
+                        dates.add(d2);
+                        times.add(hour);
+                        times.add(minutes);
+                        ll.removeAllViews();
+                        chooseLocation(view);
+                    }else{
+                        AlertDialog.Builder alertbld = new AlertDialog.Builder(getActivity());
+                        alertbld.setTitle("Wrong dates!");
+                        alertbld.setMessage("Check the selected start date.");
+                        alertbld.setPositiveButton("OK", new DialogInterface.OnClickListener(){
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+
+                            }
+                        });
+                        alertbld.show();
+                    }
                 }
             }
         });
