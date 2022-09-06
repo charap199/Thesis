@@ -1,10 +1,15 @@
 package com.charikleia.petrou.personalisedtravelguide;
 
+import static android.app.Activity.RESULT_CANCELED;
+import static android.app.Activity.RESULT_OK;
+
+import android.Manifest;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
@@ -28,8 +33,28 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.api.Status;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.AutocompletePrediction;
+import com.google.android.libraries.places.api.model.AutocompleteSessionToken;
+import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.api.model.RectangularBounds;
+import com.google.android.libraries.places.api.model.TypeFilter;
+import com.google.android.libraries.places.api.net.FetchPlaceRequest;
+import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest;
+import com.google.android.libraries.places.api.net.PlacesClient;
+import com.google.android.libraries.places.widget.Autocomplete;
+import com.google.android.libraries.places.widget.AutocompleteActivity;
+import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
+//import com.google.android.gms.location.places.ui.PlacePicker;
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.firebase.auth.FirebaseAuth;
 
@@ -40,6 +65,7 @@ import java.sql.Time;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -48,6 +74,22 @@ import java.util.Locale;
 public class NewTripFragment extends Fragment {
     @Nullable
 
+    //for location permission - google places variables
+    private static  final String FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION;
+    private static  final String COARSE_LOCATION = Manifest.permission.ACCESS_COARSE_LOCATION;
+    private static  final int LOCATION_PERMISSION_REQUEST_CODE = 1234;
+
+    private static int AUTOCOMPLETE_REQUEST_CODE = 1;
+    FindAutocompletePredictionsRequest.Builder autocompleteFragment = null;
+    List<Place.Field> fields;
+    PlacesClient placesClient;
+    Place place;
+    String apiKey = "AIzaSyDraeLcgw8liZ0ZJjwapMo07w8rrrL3SB0";
+
+
+    String placeId;
+    private Boolean mLocationPermissionGranted = false;
+    public RecyclerView recyclerView;
 //    private LinearLayout Category;
     private CheckBox[] checkBox, scheckBox;//for category & subcategory
     private Connection connect;
@@ -83,13 +125,134 @@ public class NewTripFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 //        return super.onCreateView(inflater, container, savedInstanceState);
         View view = inflater.inflate(R.layout.fragment_new_trip, container, false);
-
         ll = (LinearLayout) view.findViewById(R.id.LinearLayout); //initialize layout for pickers
+        // Initialize the SDK
+        Places.initialize(getActivity().getApplicationContext(), apiKey);
+        if (!Places.isInitialized()) {
+            Places.initialize(getActivity().getApplicationContext(), apiKey);
+        }else{
+            System.out.println("Places Initialized: "+ Places.isInitialized());
+//            //Initialize Places
+////        Places.initialize(getActivity().getApplicationContext(), apiKey);
+//            String apiKey = "AIzaSyDraeLcgw8liZ0ZJjwapMo07w8rrrL3SB0";
+//
+//            // Start the autocomplete intent.
+//            Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields)
+//                    .build(getActivity());
+//            getActivity().startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE);
+//            TextView textView = new TextView(getActivity());
+//            ll.addView(textView);
+//            textView.setOnClickListener(new View.OnClickListener() {
+//                @Override
+//                public void onClick(View view) {
+//
+//                    Place place = Autocomplete.getPlaceFromIntent(intent);
+//                    textView.setText("Choose Location: \n"+ place.getName());
+//                }
+//            });
+            // Create a new PlacesClient instance
+            placesClient = Places.createClient(getActivity());
 
-        return chooseDay(view);
+            // Set the fields to specify which types of place data to
+            // return after the user has made a selection.
+            fields = Arrays.asList(Place.Field.ID, Place.Field.NAME);
+
+            // Start the autocomplete intent.
+            Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields)
+                    .build(getActivity());
+            startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE);
+
+            // Create a new token for the autocomplete session. Pass this to FindAutocompletePredictionsRequest,
+            // and once again when the user makes a selection (for example when calling fetchPlace()).
+            AutocompleteSessionToken token = AutocompleteSessionToken.newInstance();
+
+            TextView textView = new TextView(getActivity());
+            ll.addView(textView);
+            place = Autocomplete.getPlaceFromIntent(intent);
+                    textView.setText("Choose Location: \n"+ place.getName());
+
+        }
+
+
+//        // Create a RectangularBounds object.
+//        RectangularBounds bounds = RectangularBounds.newInstance(
+//                new LatLng(-33.880490, 151.184363),
+//                new LatLng(-33.858754, 151.229596));
+//        // Use the builder to create a FindAutocompletePredictionsRequest.
+//        FindAutocompletePredictionsRequest request = FindAutocompletePredictionsRequest.builder()
+//                // Call either setLocationBias() OR setLocationRestriction().
+//                .setLocationBias(bounds)
+//                //.setLocationRestriction(bounds)
+//                .setOrigin(new LatLng(-33.8749937,151.2041382))
+//                .setCountries("AU", "NZ")
+//                .setTypeFilter(TypeFilter.ADDRESS)
+//                .setSessionToken(token)
+////                .setQuery(query)
+//                .build();
+//
+//        placesClient.findAutocompletePredictions(request).addOnSuccessListener((response) -> {
+//            for (AutocompletePrediction prediction : response.getAutocompletePredictions()) {
+////                Log.i(TAG, prediction.getPlaceId());
+////                Log.i(TAG, prediction.getPrimaryText(null).toString());
+//                System.out.println("prediction.getPlaceId()"+ prediction.getPlaceId());
+//                System.out.println("prediction.getPrimaryText(null).toString()"+ prediction.getPrimaryText(null).toString());
+//            }
+//        }).addOnFailureListener((exception) -> {
+//            if (exception instanceof ApiException) {
+//                ApiException apiException = (ApiException) exception;
+////                Log.e(TAG, "Place not found: " + apiException.getStatusCode());
+//                System.out.println("Place not found: " + apiException.getStatusCode());
+//            }
+//        });
+//
+//        autocompleteFragment.setLocationBias(RectangularBounds.newInstance(
+//                new LatLng(-33.880490, 151.184363),
+//                new LatLng(-33.858754, 151.229596)));
+//        autocompleteFragment.setLocationRestriction(RectangularBounds.newInstance(
+//                new LatLng(-33.880490, 151.184363),
+//                new LatLng(-33.858754, 151.229596)));
+//
+//        autocompleteFragment.setTypeFilter(TypeFilter.ADDRESS);
+//        Intent in = new Autocomplete.IntentBuilder(
+//                AutocompleteActivityMode.FULLSCREEN, fields)
+//                .setTypeFilter(TypeFilter.ADDRESS)
+//                .build(getActivity());
+//        startActivityForResult(in, AUTOCOMPLETE_REQUEST_CODE);
+//
+//        autocompleteFragment.setCountries("AU", "NZ");
+
+//        return chooseDay(view);
+        return view;
     }
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
 
+//        if (requestCode == AUTOCOMPLETE_REQUEST_CODE && resultCode == RESULT_OK) {
+//            Place place = Autocomplete.getPlaceFromIntent(data);
+//            if (place == null) {
+//                System.out.println("Place: " + place.getName() + ", " + place.getId());
+//                return;
+//            }
+//        }
+        if (requestCode == AUTOCOMPLETE_REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+                place = Autocomplete.getPlaceFromIntent(data);
+//                Place place = PlacePicker.getPlace(this, data);
+//                Log.i(TAG, "Place: " + place.getName() + ", " + place.getId());
+                System.out.println("Place: " + place.getName() + ", " + place.getId());
+            } else if (resultCode == AutocompleteActivity.RESULT_ERROR) {
+                // TODO: Handle the error.
+                Status status = Autocomplete.getStatusFromIntent(data);
+//                Log.i(TAG, status.getStatusMessage());
+                System.out.println("Status mesage: " + status.getStatusMessage());
+            } else if (resultCode == RESULT_CANCELED) {
+                // The user canceled the operation.
+            }
+            return;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
 
     public View chooseCategory(View view){
         cat.clear();//clears the choices if called again for change
@@ -481,10 +644,12 @@ public class NewTripFragment extends Fragment {
                             }
                         });
                         alertbld.show();
+                    }else{
+                        System.out.println("here?");
                     }
 
                 }
-                else if(d1 == null & d2 == null & hour == 0 & minutes == 0){
+                else if(d1 == null & d2 == null & hour == 0 & minutes == 0 & sTime.getText().equals("") & eTime.getText().equals("")){
                     System.out.println("if2");
                     AlertDialog.Builder alertbld = new AlertDialog.Builder(getActivity());
                     alertbld.setTitle("Select Dates");
@@ -496,9 +661,11 @@ public class NewTripFragment extends Fragment {
                         }
                     });
                     alertbld.show();
-                }else if (d1.compareTo(d2) <= 0) {//checks the two user input dates
+                }else if (d1.compareTo(d2) < 0) {//checks the two user input dates
                     System.out.println("if3");
-                    if (currentdate.compareTo(d1) <= 0){//checks current date with user input
+                    System.out.println(currentdate);
+                    System.out.println(d1);
+                    if ( currentdate.compareTo(d1) < 0 || formatter.format(currentdate).matches(formatter.format(d1)) ){//checks current date with user input
                         System.out.println("if33");
                         dates.add(d1);
                         dates.add(d2);
@@ -507,6 +674,7 @@ public class NewTripFragment extends Fragment {
                         ll.removeAllViews();
                         chooseLocation(view);
                     }else{
+                        System.out.println("why?");
                         AlertDialog.Builder alertbld = new AlertDialog.Builder(getActivity());
                         alertbld.setTitle("Wrong dates!");
                         alertbld.setMessage("Check the selected start date.");
@@ -518,6 +686,21 @@ public class NewTripFragment extends Fragment {
                         });
                         alertbld.show();
                     }
+                }else{
+                    System.out.println(d1);
+                    System.out.println(d2);
+                    System.out.println(sTime.getText());
+                    System.out.println(eTime.getText());
+                    AlertDialog.Builder alertbld = new AlertDialog.Builder(getActivity());
+                    alertbld.setTitle("Empty Fields!");
+                    alertbld.setMessage("Fill in the fields.");
+                    alertbld.setPositiveButton("OK", new DialogInterface.OnClickListener(){
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+
+                        }
+                    });
+                    alertbld.show();
                 }
             }
         });
@@ -536,45 +719,101 @@ public class NewTripFragment extends Fragment {
 
 
     public View chooseLocation(View view){
-        locs.clear();//clears the choices if called again for change
-        try {
-            ConnectionHelper connectionHelper = new ConnectionHelper();
-            connect = connectionHelper.connectionclass();
-            if (connect != null){
-                System.out.println("Trying connection ");
-                String query1 = "Select distinct LOCATION from greecepois";
-                Statement st = connect.createStatement();
-                ResultSet rs1 = st.executeQuery(query1);
-                while(rs1.next()) {
-//                    records += rs.getString(1) + " " + rs.getString(2) + "\n";
-                    locations.add(rs1.getString(1));
-                    System.out.println("Locations: "+locations);
+//        locs.clear();//clears the choices if called again for change
+//        try {
+//            ConnectionHelper connectionHelper = new ConnectionHelper();
+//            connect = connectionHelper.connectionclass();
+//            if (connect != null){
+//                System.out.println("Trying connection ");
+//                String query1 = "Select distinct LOCATION from greecepois";
+//                Statement st = connect.createStatement();
+//                ResultSet rs1 = st.executeQuery(query1);
+//                while(rs1.next()) {
+////                    records += rs.getString(1) + " " + rs.getString(2) + "\n";
+//                    locations.add(rs1.getString(1));
+//                    System.out.println("Locations: "+locations);
+//
+//                }
+//                rs1.close();
+//
+//            }else{
+//                System.out.println("Connection Error!");
+//            }
+//
+//
+//        }catch (Exception e){
+//            System.out.println("Exception:" + e);
+//        }
+//
+//        TextView textView = new TextView(getActivity());
+//        textView.setText("Choose Location: \n");
+//        ll.addView(textView);
+//
+//
+//        checkBox = new CheckBox[locations.size()];
+//        for (int i  = 0; i<locations.size(); i++){
+////            checkBox = new CheckBox(getActivity());
+//            checkBox[i] = new CheckBox(getActivity());
+//            checkBox[i].setText(locations.get(i));
+////            checkBox[i].setOnClickListener(getOnClickDoSomething(checkBox[i]));
+//            ll.addView(checkBox[i]);
+//        }
 
-                }
-                rs1.close();
+//        Button myButton = new Button(getActivity());
+//        myButton.setText("NEXT");
+//        ll.addView(myButton);
+//
+//        myButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//
+////                ll.setVisibility(ll.GONE);
+//                for (int i = 0; i< locations.size(); i++){
+////                   checkBox = new CheckBox(getActivity());
+//                    if (checkBox[i].isChecked()){
+//                        locs.add(checkBox[i].getText().toString());
+//                    }
+//                }
+//                System.out.println("Selected Locations: "+locs);
+//
+//                if (locs.isEmpty()){
+//                    AlertDialog.Builder alertbld = new AlertDialog.Builder(getActivity());
+//                    alertbld.setTitle("Select Location!");
+//                    alertbld.setMessage("You need to select at least one location to get to the next step.");
+//                    alertbld.setPositiveButton("OK", new DialogInterface.OnClickListener(){
+//                        @Override
+//                        public void onClick(DialogInterface dialogInterface, int i) {
+//
+//                        }
+//                    });
+//                    alertbld.show();
+//                }else {
+//                    ll.removeAllViews();
+//                    chooseCategory(view);
+//                }
+//
+//
+//            }
+//        });
 
-            }else{
-                System.out.println("Connection Error!");
-            }
+        //Initialize Places
+//        Places.initialize(getActivity().getApplicationContext(), apiKey);
+        String apiKey = "AIzaSyDraeLcgw8liZ0ZJjwapMo07w8rrrL3SB0";
 
-
-        }catch (Exception e){
-            System.out.println("Exception:" + e);
-        }
-
+        // Start the autocomplete intent.
+        Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields)
+                .build(getActivity());
+        getActivity().startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE);
         TextView textView = new TextView(getActivity());
-        textView.setText("Choose Location: \n");
         ll.addView(textView);
+        textView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
 
-
-        checkBox = new CheckBox[locations.size()];
-        for (int i  = 0; i<locations.size(); i++){
-//            checkBox = new CheckBox(getActivity());
-            checkBox[i] = new CheckBox(getActivity());
-            checkBox[i].setText(locations.get(i));
-//            checkBox[i].setOnClickListener(getOnClickDoSomething(checkBox[i]));
-            ll.addView(checkBox[i]);
-        }
+                Place place = Autocomplete.getPlaceFromIntent(intent);
+                textView.setText("Choose Location: \n"+ place.getName());
+            }
+        });
 
         Button myButton = new Button(getActivity());
         myButton.setText("NEXT");
@@ -583,33 +822,8 @@ public class NewTripFragment extends Fragment {
         myButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
-//                ll.setVisibility(ll.GONE);
-                for (int i = 0; i< locations.size(); i++){
-//                   checkBox = new CheckBox(getActivity());
-                    if (checkBox[i].isChecked()){
-                        locs.add(checkBox[i].getText().toString());
-                    }
-                }
-                System.out.println("Selected Locations: "+locs);
-
-                if (locs.isEmpty()){
-                    AlertDialog.Builder alertbld = new AlertDialog.Builder(getActivity());
-                    alertbld.setTitle("Select Location!");
-                    alertbld.setMessage("You need to select at least one location to get to the next step.");
-                    alertbld.setPositiveButton("OK", new DialogInterface.OnClickListener(){
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-
-                        }
-                    });
-                    alertbld.show();
-                }else {
-                    ll.removeAllViews();
-                    chooseCategory(view);
-                }
-
-
+                ll.removeAllViews();
+                chooseCategory(view);
             }
         });
 
@@ -631,6 +845,30 @@ public class NewTripFragment extends Fragment {
 
         return view;
     }
+
+
+
+    //function that ask for location permission
+    private void getLocationPermission(){
+        String[] permissions = {Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION};
+
+        if(ContextCompat.checkSelfPermission(getActivity().getApplicationContext(), FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
+            if(ContextCompat.checkSelfPermission(getActivity().getApplicationContext(), COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED){
+                mLocationPermissionGranted = true;
+            }else{
+                ActivityCompat.requestPermissions(getActivity(), permissions,LOCATION_PERMISSION_REQUEST_CODE);
+            }
+        }
+
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+
 
 //    public View initialQuestions(View view){
 //        questions.clear();
