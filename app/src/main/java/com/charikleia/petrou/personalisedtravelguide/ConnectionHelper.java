@@ -25,6 +25,7 @@ public class ConnectionHelper {
         StrictMode.setThreadPolicy(policy);
         //Connection connection;
 //        String ConnectionURL = null;
+
         String dbDriver = "com.mysql.jdbc.Driver";
         System.out.println("c1");
         /* try{
@@ -34,7 +35,7 @@ public class ConnectionHelper {
             Class.forName("com.mysql.jdbc.Driver");
 //            ConnectionURL = "jdbc:mysql://" + ip + ":" + port + "databasename=" + db +";user"+ uname + pass +";";
 //            connection = DriverManager.getConnection(ConnectionURL);
-            Connection connection = DriverManager.getConnection("jdbc:mysql://192.168.2.13:3306/pois" , "cp", "cp");
+            Connection connection = DriverManager.getConnection("jdbc:mysql://192.168.1.183:3306/pois" , "cp", "cp");
 //            connection = DriverManager.getConnection("jdbc:mysql://localhost/" + db + "?user=" + uname + "&password=" + pass + "&useUnicode=true&characterEncoding=UTF-8");
 //            Statement statement = connection.createStatement();
 //            ResultSet resultSet = statement.executeQuery("Select * From test");

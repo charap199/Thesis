@@ -13,8 +13,12 @@ import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.location.Location;
+import android.media.browse.MediaBrowser;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.CallLog;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -22,10 +26,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
@@ -36,6 +42,8 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.gms.common.api.ApiException;
@@ -54,10 +62,12 @@ import com.google.android.libraries.places.widget.Autocomplete;
 import com.google.android.libraries.places.widget.AutocompleteActivity;
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
 //import com.google.android.gms.location.places.ui.PlacePicker;
+import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.firebase.auth.FirebaseAuth;
 
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -74,7 +84,8 @@ import java.util.Locale;
 public class NewTripFragment extends Fragment {
     @Nullable
 
-    //for location permission - google places variables
+    //for location permission - google places variables CONSTANTS
+    public static final String TAG = NewTripFragment.class.getSimpleName();
     private static  final String FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION;
     private static  final String COARSE_LOCATION = Manifest.permission.ACCESS_COARSE_LOCATION;
     private static  final int LOCATION_PERMISSION_REQUEST_CODE = 1234;
@@ -85,23 +96,65 @@ public class NewTripFragment extends Fragment {
     PlacesClient placesClient;
     Place place;
     String apiKey = "AIzaSyDraeLcgw8liZ0ZJjwapMo07w8rrrL3SB0";
+    Fragment myFrag;
 
 
-    String placeId;
+    String placeId, placeName;
     private Boolean mLocationPermissionGranted = false;
     public RecyclerView recyclerView;
 //    private LinearLayout Category;
     private CheckBox[] checkBox, scheckBox;//for category & subcategory
+    private RadioButton[] radiobtn;
     private Connection connect;
     private String records="";
-    List<String> CategoryList =new ArrayList<String>();
+    private String categoryStr = "Shopping & Fashion\n" + "Tours & Sightseeing\n" + "Water Sports\n" + "Wedding & Honeymoons\n" +
+            "Family Friendly Activities\n" +
+            "Spa & Massage\n" +
+            "Gym\n" +
+            "Museum \n" +
+            "restaurants\n" +
+            "lunch \n" +
+            "dinner \n" +
+            "cafe\n" +
+            "brunch\n" +
+            "groceries\n" +
+            "cocktail bar\n" +
+            "night club\n" +
+            "beaches\n" +
+            "parks\n" +
+            "mountains\n" +
+            "deserts and forests\n" +
+            "historical place\n" +
+            "historical landmark\n" +
+            "attraction\n" +
+            "monument\n" +
+            "ancient temple\n" +
+            "zoo\n" +
+            "aquaria\n" +
+            "botanical gardens\n" +
+            "buildings and structures \n" +
+            "fort \n" +
+            "castle \n" +
+            "libraries\n" +
+            "former prisons\n" +
+            "skyscraper\n" +
+            "bridge\n" +
+            "theme parks and carnivals\n" +
+            "living history museums\n" +
+            "public art\n" +
+            "sculptures\n" +
+            "statues\n" +
+            "murals\n" +
+            "Other";
+    List<String> CategoryList, selectedCategory =new ArrayList<String>();
     List<String> SubcategoryList =new ArrayList<String>();
     List<String> locations=new ArrayList<String>();
+    String other;//additional options in category
     LinearLayout ll;
     DatePickerDialog.OnDateSetListener setListener;
     public Date d1 = new Date();
     public Date d2 = new Date();
-    public int hour, minutes =0;
+    public int  hour, bdg=-1, minutes =-1;
     Date tempTime;
 
 
@@ -126,103 +179,22 @@ public class NewTripFragment extends Fragment {
 //        return super.onCreateView(inflater, container, savedInstanceState);
         View view = inflater.inflate(R.layout.fragment_new_trip, container, false);
         ll = (LinearLayout) view.findViewById(R.id.LinearLayout); //initialize layout for pickers
+//        ll.setId(Integer.parseInt("1"));
+
+        CategoryList = Arrays.asList(categoryStr.split("\n"));
+        System.out.println(CategoryList);
+
+
         // Initialize the SDK
         Places.initialize(getActivity().getApplicationContext(), apiKey);
         if (!Places.isInitialized()) {
             Places.initialize(getActivity().getApplicationContext(), apiKey);
-        }else{
-            System.out.println("Places Initialized: "+ Places.isInitialized());
-//            //Initialize Places
-////        Places.initialize(getActivity().getApplicationContext(), apiKey);
-//            String apiKey = "AIzaSyDraeLcgw8liZ0ZJjwapMo07w8rrrL3SB0";
-//
-//            // Start the autocomplete intent.
-//            Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields)
-//                    .build(getActivity());
-//            getActivity().startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE);
-//            TextView textView = new TextView(getActivity());
-//            ll.addView(textView);
-//            textView.setOnClickListener(new View.OnClickListener() {
-//                @Override
-//                public void onClick(View view) {
-//
-//                    Place place = Autocomplete.getPlaceFromIntent(intent);
-//                    textView.setText("Choose Location: \n"+ place.getName());
-//                }
-//            });
-            // Create a new PlacesClient instance
-            placesClient = Places.createClient(getActivity());
-
-            // Set the fields to specify which types of place data to
-            // return after the user has made a selection.
-            fields = Arrays.asList(Place.Field.ID, Place.Field.NAME);
-
-            // Start the autocomplete intent.
-            Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields)
-                    .build(getActivity());
-            startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE);
-
-            // Create a new token for the autocomplete session. Pass this to FindAutocompletePredictionsRequest,
-            // and once again when the user makes a selection (for example when calling fetchPlace()).
-            AutocompleteSessionToken token = AutocompleteSessionToken.newInstance();
-
-            TextView textView = new TextView(getActivity());
-            ll.addView(textView);
-            place = Autocomplete.getPlaceFromIntent(intent);
-                    textView.setText("Choose Location: \n"+ place.getName());
-
         }
 
 
-//        // Create a RectangularBounds object.
-//        RectangularBounds bounds = RectangularBounds.newInstance(
-//                new LatLng(-33.880490, 151.184363),
-//                new LatLng(-33.858754, 151.229596));
-//        // Use the builder to create a FindAutocompletePredictionsRequest.
-//        FindAutocompletePredictionsRequest request = FindAutocompletePredictionsRequest.builder()
-//                // Call either setLocationBias() OR setLocationRestriction().
-//                .setLocationBias(bounds)
-//                //.setLocationRestriction(bounds)
-//                .setOrigin(new LatLng(-33.8749937,151.2041382))
-//                .setCountries("AU", "NZ")
-//                .setTypeFilter(TypeFilter.ADDRESS)
-//                .setSessionToken(token)
-////                .setQuery(query)
-//                .build();
-//
-//        placesClient.findAutocompletePredictions(request).addOnSuccessListener((response) -> {
-//            for (AutocompletePrediction prediction : response.getAutocompletePredictions()) {
-////                Log.i(TAG, prediction.getPlaceId());
-////                Log.i(TAG, prediction.getPrimaryText(null).toString());
-//                System.out.println("prediction.getPlaceId()"+ prediction.getPlaceId());
-//                System.out.println("prediction.getPrimaryText(null).toString()"+ prediction.getPrimaryText(null).toString());
-//            }
-//        }).addOnFailureListener((exception) -> {
-//            if (exception instanceof ApiException) {
-//                ApiException apiException = (ApiException) exception;
-////                Log.e(TAG, "Place not found: " + apiException.getStatusCode());
-//                System.out.println("Place not found: " + apiException.getStatusCode());
-//            }
-//        });
-//
-//        autocompleteFragment.setLocationBias(RectangularBounds.newInstance(
-//                new LatLng(-33.880490, 151.184363),
-//                new LatLng(-33.858754, 151.229596)));
-//        autocompleteFragment.setLocationRestriction(RectangularBounds.newInstance(
-//                new LatLng(-33.880490, 151.184363),
-//                new LatLng(-33.858754, 151.229596)));
-//
-//        autocompleteFragment.setTypeFilter(TypeFilter.ADDRESS);
-//        Intent in = new Autocomplete.IntentBuilder(
-//                AutocompleteActivityMode.FULLSCREEN, fields)
-//                .setTypeFilter(TypeFilter.ADDRESS)
-//                .build(getActivity());
-//        startActivityForResult(in, AUTOCOMPLETE_REQUEST_CODE);
-//
-//        autocompleteFragment.setCountries("AU", "NZ");
 
-//        return chooseDay(view);
-        return view;
+        return chooseDay(view);
+//        return view;
     }
 
     @Override
@@ -238,6 +210,8 @@ public class NewTripFragment extends Fragment {
         if (requestCode == AUTOCOMPLETE_REQUEST_CODE) {
             if (resultCode == RESULT_OK) {
                 place = Autocomplete.getPlaceFromIntent(data);
+                placeName = place.getName();
+                placeId = place.getId();
 //                Place place = PlacePicker.getPlace(this, data);
 //                Log.i(TAG, "Place: " + place.getName() + ", " + place.getId());
                 System.out.println("Place: " + place.getName() + ", " + place.getId());
@@ -297,6 +271,7 @@ public class NewTripFragment extends Fragment {
         ll.addView(textView);
 
 
+        //shows the choices of category in checkbox
         checkBox = new CheckBox[CategoryList.size()];
         for (int i  = 0; i<CategoryList.size(); i++){
 //            checkBox = new CheckBox(getActivity());
@@ -304,24 +279,89 @@ public class NewTripFragment extends Fragment {
             checkBox[i].setText(CategoryList.get(i));
 //            checkBox[i].setOnClickListener(getOnClickDoSomething(checkBox[i]));
             ll.addView(checkBox[i]);
+
+
+
+//            for (int k  = 0; i<CategoryList.size(); k++){
+//                //checks if other is selected in order for the user to write other options
+//                if (checkBox[i].getText() == "Other"){
+//                    checkBox[i].setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+//
+//                       @Override
+//                       public void onCheckedChanged(CompoundButton buttonView,boolean isChecked) {
+//                           EditText editText = new EditText(getActivity());ll.addView(editText);
+//                           editText.setHint("Acceptable Characters:letters, numbers and commas");
+//                           editText.addTextChangedListener(new TextWatcher() {
+//
+//                               public void afterTextChanged(Editable s) {
+//                                   other = String.valueOf(editText.getText());
+//                               }
+//
+//                               public void beforeTextChanged(CharSequence s, int start,
+//                                                             int count, int after) {
+//                               }
+//
+//                               public void onTextChanged(CharSequence s, int start,
+//                                                         int before, int count) {
+//                               }
+//                           });
+////                           other = editText.getText().split(",");
+////                           setOnClickListener(new View.OnClickListener() {
+////                               @Override
+////                               public void onClick(View view) {
+////                                   AlertDialog.Builder alertbld = new AlertDialog.Builder(getActivity());
+////                                   alertbld.setTitle("Acceptable Characters");
+////                                   alertbld.setMessage("Check your input in Other. \nOnly letters, numbers and commas are acceptable");
+////                                   alertbld.setPositiveButton("OK", new DialogInterface.OnClickListener(){
+////                                       @Override
+////                                       public void onClick(DialogInterface dialogInterface, int i) {
+////
+////                                       }
+////                                   });
+////                                   alertbld.show();
+////                               }
+////                           });
+//                                                               }
+//                                                           }
+//                    );
+//                }
+//            }
+
         }
+        EditText editText = new EditText(getActivity());
+        editText.setHint("Acceptable Characters:letters, numbers and commas");
+//        editText.setVisibility(View.INVISIBLE);
+        ll.addView(editText);
+
+
 
         Button myButton = new Button(getActivity());
-        myButton.setText("Push Me");
+        myButton.setText("Next");
         ll.addView(myButton);
 
         myButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
-//                ll.setVisibility(ll.GONE);
-                for (int i  = 0; i<CategoryList.size(); i++){
-//                   checkBox = new CheckBox(getActivity());
-                    if (checkBox[i].isChecked()){
-                        cat.add(checkBox[i].getText().toString());
-                    }
+                for (CheckBox checkbox : checkBox){
+                    if(checkbox.isChecked())
+                        cat.add(checkbox.getText().toString());
                 }
-                System.out.println("Selevted Categories: "+cat);
+                System.out.println("Selected Categories: "+cat);
+//                ll.setVisibility(ll.GONE);
+
+//                for (int i  = 0; i<CategoryList.size(); i++){
+////                   checkBox = new CheckBox(getActivity());
+//                    if (checkBox[i].isChecked()){//fills from predefined options
+//                        cat.add(checkBox[i].getText().toString());
+//                    }
+//
+//                    if (checkBox[i].getText() == "Other" && checkBox[i].isChecked()){//fills from user's input
+//                        cat.add(String.valueOf(other.split(",")));
+//                    }
+//                }
+//                System.out.println("Selected Categories: "+cat);
+
+                //alert user that at least one must be chosen
                 if (cat.isEmpty()){
                     AlertDialog.Builder alertbld = new AlertDialog.Builder(getActivity());
                     alertbld.setTitle("Choose Category");
@@ -335,7 +375,7 @@ public class NewTripFragment extends Fragment {
                     alertbld.show();
                 }else{
                     ll.removeAllViews();
-                    chooseSubcategory(view);
+                    showFinalChoices(view);
                 }
 
             }
@@ -649,8 +689,14 @@ public class NewTripFragment extends Fragment {
                     }
 
                 }
-                else if(d1 == null & d2 == null & hour == 0 & minutes == 0 & sTime.getText().equals("") & eTime.getText().equals("")){
+                else if(d1 == null || d2 == null || hour == -1 || minutes == -1 || sTime.getText().equals("") || eTime.getText().equals("")){
                     System.out.println("if2");
+                    System.out.println("d1: "+ d1);
+                    System.out.println("d2: "+d2);
+                    System.out.println("hour: "+hour);
+                    System.out.println("min: "+minutes);
+                    System.out.println("sTime: "+sTime.getText());
+                    System.out.println("eTime: "+eTime.getText());
                     AlertDialog.Builder alertbld = new AlertDialog.Builder(getActivity());
                     alertbld.setTitle("Select Dates");
                     alertbld.setMessage("You need to select dates for the next step.");
@@ -672,7 +718,7 @@ public class NewTripFragment extends Fragment {
                         times.add(hour);
                         times.add(minutes);
                         ll.removeAllViews();
-                        chooseLocation(view);
+                        chooseLocationBdg(view);
                     }else{
                         System.out.println("why?");
                         AlertDialog.Builder alertbld = new AlertDialog.Builder(getActivity());
@@ -718,7 +764,7 @@ public class NewTripFragment extends Fragment {
 //    }
 
 
-    public View chooseLocation(View view){
+    public View chooseLocationBdg(View view){
 //        locs.clear();//clears the choices if called again for change
 //        try {
 //            ConnectionHelper connectionHelper = new ConnectionHelper();
@@ -796,24 +842,78 @@ public class NewTripFragment extends Fragment {
 //            }
 //        });
 
-        //Initialize Places
-//        Places.initialize(getActivity().getApplicationContext(), apiKey);
-        String apiKey = "AIzaSyDraeLcgw8liZ0ZJjwapMo07w8rrrL3SB0";
+//        //Initialize Places
+////        Places.initialize(getActivity().getApplicationContext(), apiKey);
+//        String apiKey = "AIzaSyDraeLcgw8liZ0ZJjwapMo07w8rrrL3SB0";
+//
+//        // Start the autocomplete intent.
+//        Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields)
+//                .build(getActivity());
+//        getActivity().startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE);
 
-        // Start the autocomplete intent.
-        Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields)
-                .build(getActivity());
-        getActivity().startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE);
+//        // Set the fields to specify which types of place data to
+//        // return after the user has made a selection.
+//        fields = Arrays.asList(Place.Field.ID, Place.Field.NAME);
+//
+//        // Start the autocomplete intent.
+//        Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields)
+//                .setTypeFilter(TypeFilter.CITIES)
+//                .build(getActivity());
+//        startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE);
+
         TextView textView = new TextView(getActivity());
+        textView.setText("Click to choose City");
         ll.addView(textView);
+
         textView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                textView.setText("");
+                // Set the fields to specify which types of place data to
+                // return after the user has made a selection.
+                fields = Arrays.asList(Place.Field.ID, Place.Field.NAME);
 
-                Place place = Autocomplete.getPlaceFromIntent(intent);
-                textView.setText("Choose Location: \n"+ place.getName());
+                // Start the autocomplete intent.
+                Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields)
+                        .setTypeFilter(TypeFilter.CITIES)
+                        .build(getActivity());
+                startActivityForResult(intent, AUTOCOMPLETE_REQUEST_CODE);
+
+//                textView.setText("Chosen City: "+place.getName());
+
+//                if (!(textView.getText() == "Click to choose City")){
+//                    textView.setText(place.getName());
+//                }
+
+
             }
         });
+
+        //textView for budget
+        TextView bdgtextView = new TextView(getActivity());
+        bdgtextView.setText("Choose your Budget:");
+        ll.addView(bdgtextView);
+
+
+        RadioGroup price_rg = new RadioGroup(getActivity()); //create the RadioGroup
+
+        radiobtn = new RadioButton[5];
+        for (int i  = 0; i<5; i++){
+            System.out.println("inloop");
+            radiobtn[i] = new RadioButton(getActivity());
+            radiobtn[i].setId(i);
+            if (i==0){
+                System.out.println("in0");
+                radiobtn[i].setText("$");
+            }else{
+                System.out.println("in>0");
+                radiobtn[i].setText(radiobtn[i-1].getText() +"$");
+            }
+            price_rg.addView(radiobtn[i]);
+            System.out.println("outifs");
+        }
+        ll.addView(price_rg);//add the whole RadioGroup to the layout
+
 
         Button myButton = new Button(getActivity());
         myButton.setText("NEXT");
@@ -822,8 +922,41 @@ public class NewTripFragment extends Fragment {
         myButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                ll.removeAllViews();
-                chooseCategory(view);
+//                if (bdg ==-1){//checks if budget
+//                    AlertDialog.Builder alertbld = new AlertDialog.Builder(getActivity());
+//                    alertbld.setTitle("Choose budget!");
+//                    alertbld.setMessage("You need to choose your budget.");
+//                    alertbld.setPositiveButton("OK", new DialogInterface.OnClickListener(){
+//                        @Override
+//                        public void onClick(DialogInterface dialogInterface, int i) {
+//
+//                        }
+//                    });
+//                    alertbld.show();
+//                }
+                bdg = price_rg.getCheckedRadioButtonId();
+                System.out.println(bdg);
+
+                if (textView.getText() == "Click to choose City"){
+                    AlertDialog.Builder alertbld = new AlertDialog.Builder(getActivity());
+                    alertbld.setTitle("Choose location");
+                    alertbld.setMessage("You need to choose a location.");
+                    alertbld.setPositiveButton("OK", new DialogInterface.OnClickListener(){
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+
+                        }
+                    });
+                    alertbld.show();
+                }
+                else if (textView.getText() == ""){
+                    textView.setText("Chosen City: "+place.getName());
+                }else{
+                    ll.removeAllViews();
+                    chooseCategory(view);
+                }
+
+
             }
         });
 
